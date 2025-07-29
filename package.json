@@ -1,6 +1,6 @@
 {
   "name": "nuxt-caddy",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Automatic HTTPS for local development through Caddy",
   "repository": "kristoftorfs/nuxt-caddy",
   "license": "MIT",
