@@ -53,6 +53,7 @@
     "@types/semver": "^7.7.0",
     "changelogen": "^0.6.2",
     "eslint": "^9.32.0",
+    "lefthook": "^1.12.2",
     "nuxt": "^4.0.3",
     "semver": "^7.7.2",
     "typescript": "~5.8.3",

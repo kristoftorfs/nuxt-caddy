@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: true
+  commands:
+    eslint:
+      glob: "*.{js,ts,vue,jsx,tsx}"
+      run: pnpm eslint --fix {staged_files}
+      stage_fixed: true
+
+    vue-tsc:
+      glob: "*.{vue,ts,tsx}"
+      run: pnpm vue-tsc --noEmit
+      skip:
+        - merge
+        - rebase
