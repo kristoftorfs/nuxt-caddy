@@ -23,12 +23,12 @@ function findPackageJson() {
 
 // Custom commands for engines that don't use --version
 const customCommands = {
-  // Example: python: 'python --version',
-  // Example: java: 'java -version'
+  go: 'go version',
 }
 
 // Custom version parsers for engines that don't return clean semver
 const versionParsers = {
+  go: output => output.match(/go version go(\d+\.\d+\.\d+)/)?.[1],
   node: output => output.replace('v', '').trim(),
   default: output => output.trim(),
 }
