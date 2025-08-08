@@ -29,7 +29,6 @@ const customCommands = {
 
 // Custom version parsers for engines that don't return clean semver
 const versionParsers = {
-  gh: output => output.match(/gh version (\d+\.\d+\.\d+)/)?.[1],
   node: output => output.replace('v', '').trim(),
   default: output => output.trim(),
 }
