@@ -1,7 +1,10 @@
-import MyModule from '../../../src/module'
+import CaddyModule from '../../../src/module'
 
 export default defineNuxtConfig({
   modules: [
-    MyModule,
+    CaddyModule,
   ],
+  caddy: {
+    hostnames: ['nuxt-caddy', 'nuxt-caddy-dev'],
+  },
 })

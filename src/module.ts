@@ -1,126 +1,47 @@
 import { defineNuxtModule } from '@nuxt/kit'
+import { Caddy } from './caddy'
+import { type ProjectConfiguration, projectSchema } from './schemas/project'
 
-interface CaddyOptions {
-  hostname?: string
-  caddyAdminUrl?: string
-}
-
-interface CaddyServer {
-  listen: string[]
-}
-
-export default defineNuxtModule<CaddyOptions>({
+export default defineNuxtModule<ProjectConfiguration>({
   meta: {
     name: 'nuxt-caddy',
     configKey: 'caddy',
   },
-  defaults: {},
-  setup(_options, _nuxt) {
+  async setup(_options, _nuxt) {
     if ('production' === process.env.NODE_ENV) {
       return
     }
 
-    const caddyAdminUrl = _options.caddyAdminUrl ?? process.env.CADDY_ADMIN_URL ?? 'http://localhost:2019'
-    // FIXME: validate hostname
-    const hostname = _options.hostname ?? process.env.CADDY_HOSTNAME
-    const caddyId = `nuxt-caddy-route-${hostname}`
+    const options = projectSchema.parse(_options)
+    let caddy: Caddy
 
-    const deleteConfig = async () => {
-      try {
-        const response = await fetch(caddyAdminUrl.concat(`/id/${caddyId}`), {
-          method: 'DELETE',
-        })
-
-        // A 404 response is fine, our route did not exist yet
-        if (!response.ok && response.status !== 404) {
-          throw new Error('Unexpected response from Caddy server.')
-        }
-
-        return response
+    _nuxt.hook('close', async () => {
+      if (!caddy) {
+        return
       }
-      catch (error) {
-        // Anything but 404
-        console.warn(('Is your Caddy server running?'))
-        throw error
-      }
-    }
 
-    const putConfig = async (serverName: string, config: object) => {
-      await fetch(caddyAdminUrl.concat(`/config/apps/http/servers/${serverName}/routes/0`), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
-      })
-    }
-
-    process.on('exit', async () => {
-      // FIXME: Remove the Caddy route
+      await caddy.down()
     })
 
     _nuxt.hook('listen', async (_server, listener) => {
       const port = listener.address.port
+      caddy = new Caddy(Number(port))
+      await caddy.launch(options)
 
-      const caddyConfig = {
-        '@id': caddyId,
-        'handle': [
-          {
-            handler: 'subroute',
-            routes: [
-              {
-                handle: [
-                  {
-                    handler: 'reverse_proxy',
-                    headers: {
-                      request: {
-                        set: {
-                          Host: [
-                            '{http.reverse_proxy.upstream.hostport}',
-                          ],
-                        },
-                      },
-                    },
-                    upstreams: [
-                      {
-                        dial: 'localhost:'.concat(port.toString()),
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-        'match': [
-          {
-            host: [
-              hostname,
-            ],
-          },
-        ],
-      }
+      // FIXME: find a better way to detect the dev server going down
+      if (process.stdin.setRawMode) {
+        process.stdin.setRawMode(true)
+        process.stdin.resume()
+        process.stdin.setEncoding('utf8')
 
-      await deleteConfig()
-      const servers: { [k: string]: CaddyServer } = await fetch(caddyAdminUrl.concat('/config/apps/http/servers')).then(response => response.json())
-      let matched = false
-
-      Object.entries(servers).forEach(([serverName, server]) => {
-        server.listen.forEach((listen) => {
-          if (matched) {
-            return
-          }
-
-          // FIXME: find a better way to match servers
-          if (':443' === listen) {
-            matched = true
-            putConfig(serverName, caddyConfig)
-            console.info(`Caddy config for https://${hostname} was created.`)
+        process.stdin.on('data', (key: string) => {
+          // Ctrl+C detection
+          if (key === '\u0003') {
+            _nuxt.close().then(() => {
+              process.exit(0)
+            })
           }
         })
-      })
-
-      if (!matched) {
-        // FIXME: Add the entire server block if !matched
-        console.error(`No Caddy server found for port 443, unable to add route to your application.`)
       }
     })
   },

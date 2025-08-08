@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import { setup, $fetch } from '@nuxt/test-utils/e2e'
 
-// FIXME: Add proper tests
+// FIXME: add tests
 
 describe('ssr', async () => {
   await setup({
